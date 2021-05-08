@@ -16,9 +16,6 @@ int main(int argc, char** argv)
     memset(&hints,0,sizeof(struct addrinfo));
     hints.ai_family = AF_UNSPEC;//IPv4 and IPv6
     
-    //TODO some ipv6 not resolving
-    //localhost not ::1
-    //147.96.1.9 also not
     int res = getaddrinfo(argv[1], NULL,&hints,&result);
 
     if(res!=0){
