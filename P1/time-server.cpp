@@ -14,8 +14,10 @@ int main(int argc, char** argv)
 	addrinfo hints;
 	addrinfo* result;
 	memset(&hints,0,sizeof(struct addrinfo));
+
+	hints.ai_flags = AI_PASSIVE; //devuelve 0.0.0.0
 	hints.ai_socktype = SOCK_DGRAM;//UDP
-	hints.ai_family = AF_INET;
+	hints.ai_family = AF_INET;//IPv4
 
 	int rc = getaddrinfo(argv[1], argv[2] ,&hints,&result);
 
@@ -51,6 +53,7 @@ int main(int argc, char** argv)
 		int bytes = recvfrom(sd,(void*)buffer, 80,0,&client, &clientLen); 
 		
 		char retBuffer[80];
+		memset(retBuffer,0,80);
 		int retSize;
 		if(bytes == -1){
 			std::cerr<<"[recvfrom] error receiving";
@@ -73,14 +76,14 @@ int main(int argc, char** argv)
 			retSize = strftime(retBuffer,sizeof(retBuffer),"%D",localtime(&epoch));
 			break;}
 		default:
-			std::cout << "Comando no soportado " << buffer[0];
+			std::cout << "Comando no soportado " << buffer[0] << std::endl;
 			break;
 		}
 	}
 	if(running){
 			getnameinfo(&client,clientLen,host,NI_MAXHOST,service,NI_MAXSERV,NI_NUMERICHOST|NI_NUMERICSERV);
 			sendto(sd,retBuffer,retSize,0,&client,clientLen);
-			std::cout << bytes << " bytes de " << host << ":" <<  std::endl;
+			std::cout << bytes << " bytes de " << host << ":" << service <<  std::endl;
 	}
 			
 	}
