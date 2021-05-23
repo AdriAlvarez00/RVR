@@ -76,6 +76,7 @@ int main(int argc, char **argv)
     char* serFile =(char*)malloc(one_w.size());
     fd = open("./player.data",O_RDONLY,0666);
     read(fd,serFile,one_w.size());
+    close(fd);
     // 4. "Deserializar" en one_r
     one_r.from_bin(serFile);
     // 5. Mostrar el contenido de one_r
