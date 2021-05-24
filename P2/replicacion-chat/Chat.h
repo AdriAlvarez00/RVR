@@ -72,6 +72,16 @@ public:
      */
     void do_messages();
 
+    /**
+     * Elimina a un cliente de la lista lista de reenvio
+     */
+    void removeClient(Socket* s);
+    
+    /**
+     * Reenvia un mensaje a todos los clientes
+     */
+    void broadcastMessage(ChatMessage& msg,Socket *sender);
+
 private:
     /**
      *  Lista de clientes conectados al servidor de Chat, representados por

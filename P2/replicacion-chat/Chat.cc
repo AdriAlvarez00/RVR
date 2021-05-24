@@ -1,4 +1,5 @@
 #include "Chat.h"
+#include "Socket.h"
 #include <bits/stdint-uintn.h>
 #include <cstring>
 
@@ -15,9 +16,9 @@ void ChatMessage::to_bin()
     char* aux = _data;
     memcpy(aux, &type,sizeof(uint8_t));
     aux+=sizeof(uint8_t);
-    memcpy(aux,nick.data(),NICK_LEN);
+    memcpy(aux,nick.c_str(),NICK_LEN);
     aux+=NICK_LEN;
-    memcpy(aux,message.data(),MESSAGE_LEN);
+    memcpy(aux,message.c_str(),MESSAGE_LEN);
     aux+=MESSAGE_LEN;
 }
 
@@ -31,11 +32,9 @@ int ChatMessage::from_bin(char * bobj)
     char* aux = _data;
     memcpy(&type,aux,sizeof(uint8_t));
     aux+=sizeof(uint8_t);
-    nick.resize(NICK_LEN);
-    memcpy((void*)nick.data(),aux,NICK_LEN);
+    nick = aux;
     aux+=NICK_LEN;
-    message.resize(MESSAGE_LEN);
-    memcpy((void*)message.data(),aux,MESSAGE_LEN);
+    message = aux;
     aux+=MESSAGE_LEN;
 
     return 0;
@@ -44,6 +43,23 @@ int ChatMessage::from_bin(char * bobj)
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 
+void ChatServer::removeClient(Socket* sock){
+	auto it = clients.begin();
+	while(it != clients.end() && **it != *sock)
+		it++;
+	if(it == clients.end()){
+		std::cout << "sock is not a client\n";
+		return;
+	}
+	clients.erase(it);	
+}
+
+void ChatServer::broadcastMessage(ChatMessage& msg,Socket *sender){
+	for(auto it = clients.begin();it!=clients.end();++it){
+		if(**it != *sender) 
+			socket.send(msg,**it);
+	}
+}
 void ChatServer::do_messages()
 {
     while (true)
@@ -59,16 +75,22 @@ void ChatServer::do_messages()
         // - LOGOUT: Eliminar del vector clients
         // - MESSAGE: Reenviar el mensaje a todos los clientes (menos el emisor)
 	ChatMessage msg;
-	socket.recv(msg);
+	Socket *msgSock = new Socket(socket);
+	socket.recv(msg,msgSock);
 
 	if(msg.type == msg.LOGIN){
-		std::cout << "LOGIN\n";
+		std::cout << "LOGIN " << *msgSock << "\n";
+		std::unique_ptr<Socket> uptr = std::make_unique<Socket>(*msgSock);
+		msgSock=nullptr;
+		clients.push_back(std::move(uptr));
 	}
 	else if(msg.type == msg.LOGOUT){
-		std::cout << "LOGOUT\n";
+		std::cout << "LOGOUT " << *msgSock << "\n";
+		removeClient(msgSock);
 	}
 	else if(msg.type == msg.MESSAGE){
-		std::cout << "MESSAGGE\n";
+		std::cout << "MESSAGGE " << *msgSock << "\n";
+		broadcastMessage(msg,msgSock);
 	}
 	else{
 		std::cerr << "Error receiving" << std::endl;
@@ -92,7 +114,14 @@ void ChatClient::login()
 
 void ChatClient::logout()
 {
-    // Completar
+    std::string msg;
+
+    ChatMessage outMsg = ChatMessage(nick,msg);
+    outMsg.type = ChatMessage::LOGOUT;
+
+    socket.send(outMsg,socket);
+
+	
 }
 
 void ChatClient::input_thread()
@@ -100,16 +129,25 @@ void ChatClient::input_thread()
     while (true)
     {
         // Leer stdin con std::getline
+	    std::string str;
+	    std::getline(std::cin,str);
         // Enviar al servidor usando socket
+	ChatMessage msg = ChatMessage(nick,str);
+	msg.type = ChatMessage::MESSAGE;
+	socket.send(msg,socket);
     }
 }
 
 void ChatClient::net_thread()
 {
+    ChatMessage inMsg;
+    Socket* inSock = new Socket(socket);
     while(true)
     {
         //Recibir Mensajes de red
+	socket.recv(inMsg,inSock);
         //Mostrar en pantalla el mensaje de la forma "nick: mensaje"
+	std::cout << inMsg.nick << ": " << inMsg.message << std::endl;
     }
 }
 

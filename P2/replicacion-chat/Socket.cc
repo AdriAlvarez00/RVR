@@ -68,12 +68,15 @@ bool operator== (const Socket &s1, const Socket &s2)
     //Comparar los campos sin_family, sin_addr.s_addr y sin_port
     //de la estructura sockaddr_in de los Sockets s1 y s2
     //Retornar false si alguno difiere
-    sockaddr_in *in1 = (sockaddr_in*) &s1.sa;
-    sockaddr_in *in2 = (sockaddr_in*) &s2.sa;
+    sockaddr_in *in1 = (sockaddr_in*) &(s1.sa);
+    sockaddr_in *in2 = (sockaddr_in*) &(s2.sa);
 
-    return(in1->sin_family==in2->sin_family) && (in1->sin_addr.s_addr==in2->sin_addr.s_addr)
-	    && (in1->sin_port && in2->sin_port);
+    return (in1->sin_family == in2->sin_family && in1->sin_addr.s_addr == in2->sin_addr.s_addr && in1->sin_port == in2->sin_port);
 };
+
+bool operator!= (const Socket &s1, const Socket &s2){
+	return !(s1==s2);
+}
 
 std::ostream& operator<<(std::ostream& os, const Socket& s)
 {
